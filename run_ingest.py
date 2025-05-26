@@ -91,7 +91,12 @@ def fetch_with_paging(endpoint, params, list_key="list"):
             break
         for row in data:
             yield row
-        end_ts = int(data[-1][0]) - 1
+        last = data[-1]
+        if isinstance(last, dict):
+            ts = int(last.get("fundingRateTimestamp") or last.get("startTime") or last.get("timestamp"))
+        else:
+            ts = int(last[0])
+        end_ts = ts - 1
         time.sleep(0.05)
 
 def insert_mark(conn, symbol, rows, table):
