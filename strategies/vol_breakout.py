@@ -39,16 +39,24 @@ class VolBreakout(Strategy):
         self.risk_mult = risk_mult
 
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
+        base_col = None
+        for c in ("price", "close", "open"):
+            if c in df.columns:
+                base_col = c
+                break
+        if base_col is None:
+            raise ValueError("No price column found")
+
         if "high" not in df.columns:
             df = df.copy()
-            df["high"] = df["price"]
-            df["low"] = df["price"]
-            df["close"] = df["price"]
-        # allow using a single price column
-        needed = {'high', 'low', 'close'}
-        if not needed.issubset(df.columns) and 'price' in df.columns:
+            df["high"] = df[base_col]
+            df["low"] = df[base_col]
+            df["close"] = df[base_col]
+
+        needed = {"high", "low", "close"}
+        if not needed.issubset(df.columns):
             df = df.copy()
-            df['high'] = df['low'] = df['close'] = df['price']
+            df["high"] = df["low"] = df["close"] = df[base_col]
 
         high_roll = df['high'].shift(1).rolling(self.lookback).max()
         low_roll = df['low'].shift(1).rolling(self.lookback).min()
