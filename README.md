@@ -50,7 +50,8 @@ python -m backtests.run_backtest \
        --symbol BTCUSDT \
        --strategy vol_breakout \
        --start 2024-11-20 \
-       --end   2024-11-27
+       --end   2024-11-27 \
+       --risk-mult 1.0
 ```
 
 
@@ -64,3 +65,20 @@ python run_grid.py --start 2024-02-01 --end 2024-05-01 --symbols BTCUSDT ETHUSDT
 
 Results are saved to `grid_results.csv`.
 
+
+## Funding-Carry Strategy
+
+`funding_carry` trades when the predicted funding rate deviates from spot. The prediction is clamped to ±0.75% and positions are opened when it exceeds ±0.3% with at least five minutes to the next funding event.
+
+## Portfolio Backtest Usage
+
+Multiple strategies can be combined with `run_portfolio.py`:
+
+```sh
+python run_portfolio.py \
+       --symbols BTCUSDT ETHUSDT \
+       --strategies vol_breakout funding_carry \
+       --start 2024-02-01 --end 2024-05-01
+```
+
+The script prints metrics for each strategy and for the total portfolio.
