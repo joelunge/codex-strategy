@@ -1,3 +1,6 @@
 requests
 pymysql
 tqdm
+
+pandas
+numpy
