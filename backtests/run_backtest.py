@@ -47,7 +47,12 @@ def main():
     parser.add_argument('--strategy', required=True)
     parser.add_argument('--start', required=True)
     parser.add_argument('--end', required=True)
-    parser.add_argument('--risk-mult', type=float, default=1.0, help='Risk multiplier for position size')
+    parser.add_argument('--risk-mult', type=float, default=1.0,
+                        help='Risk multiplier for position size')
+    parser.add_argument('--range-thr', type=float, default=0.001,
+                        help='Range threshold as decimal percentage')
+    parser.add_argument('--breakout-thr', type=float, default=0.0005,
+                        help='Breakout threshold as decimal percentage')
     args = parser.parse_args()
 
     conn = db_conn()
@@ -56,7 +61,13 @@ def main():
 
     module = import_module(f"strategies.{args.strategy}")
     cls = getattr(module, ''.join([p.capitalize() for p in args.strategy.split('_')]))
-    if 'risk_mult' in cls.__init__.__code__.co_varnames:
+    if args.strategy == 'vol_breakout':
+        strat = cls(
+            range_threshold=args.range_thr,
+            breakout_threshold=args.breakout_thr,
+            risk_mult=args.risk_mult,
+        )
+    elif 'risk_mult' in cls.__init__.__code__.co_varnames:
         strat = cls(risk_mult=args.risk_mult)
     else:
         strat = cls()
