@@ -163,6 +163,8 @@ class PortfolioSimulator:
         trades_all = []
         for name, symbol, strat, df in self.strategies:
             trades, equity = strat.simulate(df)
+            if len(trades) == 0:
+                equity = pd.Series(dtype=float)
             kelly = kelly_fraction(trades)
             weight = kelly * self.risk_scale
             if weight == 0:

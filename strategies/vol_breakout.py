@@ -3,10 +3,20 @@ from backtests.core import Strategy
 
 DEFAULT_RISK_MULT = 1.0
 
+# Default thresholds expressed as decimal percentages
+RANGE_THR_PCT = 0.001   # 0.10 %
+BREAKOUT_THR_PCT = 0.0005  # 0.05 %
+
 class VolBreakout(Strategy):
     """Simple volatility breakout strategy."""
 
-    def __init__(self, lookback=15, range_threshold=0.10, breakout_threshold=0.05, risk_mult=DEFAULT_RISK_MULT):
+    def __init__(
+        self,
+        lookback: int = 15,
+        range_threshold: float = RANGE_THR_PCT,
+        breakout_threshold: float = BREAKOUT_THR_PCT,
+        risk_mult: float = DEFAULT_RISK_MULT,
+    ):
         """Initialize breakout parameters.
 
         Parameters
@@ -14,9 +24,12 @@ class VolBreakout(Strategy):
         lookback : int
             Rolling high/low lookback in minutes.
         range_threshold : float
-            Minimum range relative to low price to activate breakout.
+            Minimum range relative to low price to activate breakout. Values
+            should be expressed as decimal percentages, e.g. ``0.001`` for
+            ``0.1%``.
         breakout_threshold : float
-            Breakout distance from the high/low.
+            Breakout distance from the high/low, also expressed as a decimal
+            percentage.
         risk_mult : float
             Multiplier applied to position size.
         """
@@ -26,6 +39,12 @@ class VolBreakout(Strategy):
         self.risk_mult = risk_mult
 
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
+        # allow using a single price column
+        needed = {'high', 'low', 'close'}
+        if not needed.issubset(df.columns) and 'price' in df.columns:
+            df = df.copy()
+            df['high'] = df['low'] = df['close'] = df['price']
+
         high_roll = df['high'].shift(1).rolling(self.lookback).max()
         low_roll = df['low'].shift(1).rolling(self.lookback).min()
         rng = high_roll - low_roll

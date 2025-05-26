@@ -51,6 +51,8 @@ python -m backtests.run_backtest \
        --strategy vol_breakout \
        --start 2024-11-20 \
        --end   2024-11-27 \
+       --range-thr 0.001 \
+       --breakout-thr 0.0005 \
        --risk-mult 1.0
 ```
 
