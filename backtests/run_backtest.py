@@ -1,12 +1,15 @@
 import argparse
-import pandas as pd
 from importlib import import_module
+import pandas as pd
 from backtests.core import cagr, max_drawdown, sharpe_ratio, win_rate, payoff_ratio
 from utils.db import db_conn
 
 
-def load_data(conn, symbol: str, start: str, end: str) -> pd.DataFrame:
-    """Load OHLC data from MySQL mark1 table."""
+def load_data(conn, symbol: str, start: str, end: str, with_index: bool = False) -> pd.DataFrame:
+    """Load OHLC data from MySQL mark1 table.
+
+    When ``with_index`` is True the index close is joined as ``index_close``.
+    """
     query = (
         "SELECT startTime AS ts, open, high, low, close "
         "FROM mark1 "
@@ -18,7 +21,17 @@ def load_data(conn, symbol: str, start: str, end: str) -> pd.DataFrame:
     df = pd.read_sql(query, conn, params=(symbol, start_ts, end_ts))
     df["ts"] = pd.to_datetime(df.ts, unit="ms")
     df.set_index("ts", inplace=True)
-    return df[["open", "high", "low", "close"]].astype(float)
+    df = df[["open", "high", "low", "close"]].astype(float)
+    if with_index:
+        query2 = (
+            "SELECT startTime AS ts, close FROM index1 "
+            "WHERE symbol=%s AND startTime BETWEEN %s AND %s ORDER BY startTime"
+        )
+        idx = pd.read_sql(query2, conn, params=(symbol, start_ts, end_ts))
+        idx["ts"] = pd.to_datetime(idx.ts, unit="ms")
+        idx.set_index("ts", inplace=True)
+        df = df.join(idx[["close"]].rename(columns={"close": "index_close"}), how="left")
+    return df
 
 
 def main():
@@ -27,15 +40,19 @@ def main():
     parser.add_argument('--strategy', required=True)
     parser.add_argument('--start', required=True)
     parser.add_argument('--end', required=True)
+    parser.add_argument('--risk-mult', type=float, default=1.0, help='Risk multiplier for position size')
     args = parser.parse_args()
 
     conn = db_conn()
-    df = load_data(conn, args.symbol, args.start, args.end)
+    df = load_data(conn, args.symbol, args.start, args.end, with_index=args.strategy == 'funding_carry')
     conn.close()
 
     module = import_module(f"strategies.{args.strategy}")
     cls = getattr(module, ''.join([p.capitalize() for p in args.strategy.split('_')]))
-    strat = cls()
+    if 'risk_mult' in cls.__init__.__code__.co_varnames:
+        strat = cls(risk_mult=args.risk_mult)
+    else:
+        strat = cls()
 
     trades, equity = strat.simulate(df)
 

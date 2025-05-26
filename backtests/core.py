@@ -46,7 +46,7 @@ class Strategy:
 
             if position == 0:
                 if signal != 0:
-                    position = int(signal)
+                    position = signal * getattr(self, "risk_mult", 1.0)
                     trade_price = price * (1 + slip * position)
                     entry_price = trade_price
                     entry_idx = i
@@ -136,3 +136,57 @@ def payoff_ratio(trades: pd.DataFrame) -> float:
     if losses.sum() == 0:
         return float('inf')
     return gains.mean() / losses.mean()
+
+
+def kelly_fraction(trades: pd.DataFrame) -> float:
+    """Return the Kelly fraction based on trade history."""
+    w = win_rate(trades)
+    pr = payoff_ratio(trades)
+    if pr <= 0:
+        return 0.0
+    return max(w - (1 - w) / pr, 0.0)
+
+
+class PortfolioSimulator:
+    """Combine multiple strategies into a portfolio."""
+
+    def __init__(self, strategies, risk_scale: float = 0.5):
+        self.strategies = strategies  # list of (name, symbol, instance, df)
+        self.risk_scale = risk_scale
+
+    def run(self):
+        results = []
+        equities = []
+        trades_all = []
+        for name, symbol, strat, df in self.strategies:
+            trades, equity = strat.simulate(df)
+            kelly = kelly_fraction(trades)
+            weight = kelly * self.risk_scale
+            equities.append((equity, weight))
+            trades['strategy'] = name
+            trades['symbol'] = symbol
+            trades_all.append(trades)
+            results.append({
+                'strategy': name,
+                'symbol': symbol,
+                'sharpe': sharpe_ratio(equity),
+                'maxdd': max_drawdown(equity),
+                'cagr': cagr(equity),
+                'trades': len(trades),
+                'kelly': kelly,
+                'weight': weight,
+            })
+
+        all_index = sorted(set().union(*(eq.index for eq, _ in equities)))
+        portfolio = pd.Series(1.0, index=pd.Index(all_index))
+        for eq, w in equities:
+            aligned = eq.reindex(all_index, method='ffill').fillna(method='ffill').fillna(1.0)
+            portfolio += (aligned - 1.0) * w
+
+        trades_df = pd.concat(trades_all, ignore_index=True) if trades_all else pd.DataFrame()
+        return pd.DataFrame(results), portfolio, trades_df
+
+
+def run_portfolio(strategies, risk_scale: float = 0.5):
+    sim = PortfolioSimulator(strategies, risk_scale=risk_scale)
+    return sim.run()

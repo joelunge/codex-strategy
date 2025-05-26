@@ -2,10 +2,26 @@ import pandas as pd
 from backtests.core import Strategy
 
 class VolBreakout(Strategy):
-    def __init__(self, lookback=30, range_threshold=0.0015, breakout_threshold=0.0010):
+    """Simple volatility breakout strategy."""
+
+    def __init__(self, lookback=15, range_threshold=0.10, breakout_threshold=0.05, risk_mult=1.0):
+        """Initialize breakout parameters.
+
+        Parameters
+        ----------
+        lookback : int
+            Rolling high/low lookback in minutes.
+        range_threshold : float
+            Minimum range relative to low price to activate breakout.
+        breakout_threshold : float
+            Breakout distance from the high/low.
+        risk_mult : float
+            Multiplier applied to position size.
+        """
         self.lookback = lookback
         self.range_threshold = range_threshold
         self.breakout_threshold = breakout_threshold
+        self.risk_mult = risk_mult
 
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
         high_roll = df['high'].shift(1).rolling(self.lookback).max()

@@ -3,22 +3,12 @@ import time
 import argparse
 import logging
 import requests
-import pymysql
 from tqdm import tqdm
+from utils.db import db_conn
 
 BASE_URL = "https://api.bybit.com"
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-
-def db_conn():
-    return pymysql.connect(
-        host=os.getenv("DB_HOST", "localhost"),
-        user=os.getenv("DB_USER", "root"),
-        password=os.getenv("DB_PASSWORD", ""),
-        database=os.getenv("DB_NAME", "bybit"),
-        port=int(os.getenv("DB_PORT", 3306)),
-        autocommit=False
-    )
 
 def create_tables(conn):
     """Create or update required MySQL tables."""
