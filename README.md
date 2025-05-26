@@ -84,3 +84,23 @@ python run_portfolio.py \
 ```
 
 The script prints metrics for each strategy and for the total portfolio.
+
+## Live Trading (Testnet)
+
+Set your testnet API keys and run the live bot:
+
+```sh
+export BYBIT_KEY_TEST=xxx
+export BYBIT_SECRET_TEST=yyy
+python live_bot.py --net testnet --risk-mult 0.5
+```
+
+## Go Live (Mainnet)
+
+When ready for real trading use your mainnet keys and typically a lower risk multiplier:
+
+```sh
+export BYBIT_KEY=xxx
+export BYBIT_SECRET=yyy
+python live_bot.py --net mainnet --risk-mult 0.25
+```
