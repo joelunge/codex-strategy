@@ -25,6 +25,16 @@ def get_mark_price(symbol: str, net: str = "testnet") -> float:
     return float(data["result"]["list"][0]["markPrice"])
 
 
+def get_index_price(symbol: str, net: str = "testnet") -> float:
+    """Return the current index price for a symbol."""
+    url = base_url(net) + "/v5/market/tickers"
+    params = {"category": "linear", "symbol": symbol}
+    resp = requests.get(url, params=params, timeout=10)
+    resp.raise_for_status()
+    data = resp.json()
+    return float(data["result"]["list"][0]["indexPrice"])
+
+
 def _auth_params(key: str, secret: str, params: dict) -> dict:
     ts = str(int(time.time() * 1000))
     recv = "5000"

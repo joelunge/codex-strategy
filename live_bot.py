@@ -9,7 +9,12 @@ import pandas as pd
 
 from strategies.vol_breakout import VolBreakout
 from strategies.funding_carry import FundingCarry
-from utils.bybit import get_mark_price, place_order_post_only, fetch_funding
+from utils.bybit import (
+    get_mark_price,
+    get_index_price,
+    place_order_post_only,
+    fetch_funding,
+)
 
 
 class LiveBot:
@@ -25,7 +30,7 @@ class LiveBot:
             raise SystemExit(f"Missing API keys in {key_var}/{sec_var}")
         self.running = True
         self.price_hist: dict[str, pd.DataFrame] = {
-            sym: pd.DataFrame(columns=["price"]) for sym in symbols
+            sym: pd.DataFrame(columns=["close", "index_close"]) for sym in symbols
         }
         logdir = Path("logs")
         logdir.mkdir(exist_ok=True)
@@ -56,16 +61,24 @@ class LiveBot:
     async def loop_once(self):
         ts = datetime.utcnow().replace(tzinfo=pd.Timestamp.utcnow().tzinfo)
         for sym in self.symbols:
-            price = get_mark_price(sym, self.net)
+            mark_price, index_price = await asyncio.gather(
+                asyncio.to_thread(get_mark_price, sym, self.net),
+                asyncio.to_thread(get_index_price, sym, self.net),
+            )
             df = self.price_hist[sym]
-            df.loc[ts] = price
+            df.loc[ts, "close"] = mark_price
+            df.loc[ts, "index_close"] = index_price
             df = df.tail(60)
             self.price_hist[sym] = df
-            data = df.rename(columns={"price": "close"})
             vb = VolBreakout(risk_mult=self.risk_mult)
             fc = FundingCarry()
             fc.risk_mult = self.risk_mult
-            for strat, name in [(vb, "vol_breakout"), (fc, "funding_carry")]:
+            vb_data = df[["close"]].copy()
+            fc_data = df[["close", "index_close"]].copy()
+            for strat, name, data in [
+                (vb, "vol_breakout", vb_data),
+                (fc, "funding_carry", fc_data),
+            ]:
                 signals = strat.generate_signals(data)
                 if signals.empty:
                     continue
@@ -78,7 +91,7 @@ class LiveBot:
                     sym,
                     side,
                     qty,
-                    price,
+                    mark_price,
                     self.api_key,
                     self.api_secret,
                     self.net,
@@ -91,7 +104,7 @@ class LiveBot:
                         name,
                         side,
                         qty,
-                        price,
+                        mark_price,
                         0,
                         funding,
                         0,
