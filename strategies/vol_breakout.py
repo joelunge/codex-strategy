@@ -39,6 +39,11 @@ class VolBreakout(Strategy):
         self.risk_mult = risk_mult
 
     def generate_signals(self, df: pd.DataFrame) -> pd.Series:
+        if "high" not in df.columns:
+            df = df.copy()
+            df["high"] = df["price"]
+            df["low"] = df["price"]
+            df["close"] = df["price"]
         # allow using a single price column
         needed = {'high', 'low', 'close'}
         if not needed.issubset(df.columns) and 'price' in df.columns:
