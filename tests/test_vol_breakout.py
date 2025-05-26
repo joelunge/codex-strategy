@@ -18,3 +18,11 @@ def test_generate_signals_produces_signal():
     strat = VolBreakout()
     signals = strat.generate_signals(df)
     assert (signals != 0).any()
+
+
+def test_generate_signals_price_only():
+    index = pd.date_range('2024-02-01', periods=20, freq='1min')
+    df = pd.DataFrame({'price': range(20)}, index=index)
+    strat = VolBreakout(lookback=15)
+    signals = strat.generate_signals(df)
+    assert isinstance(signals, pd.Series)
