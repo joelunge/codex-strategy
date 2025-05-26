@@ -31,11 +31,15 @@ If no symbols are provided the script will read them from the `symbols` table in
 
 ## Backtesting
 
-This repo includes a simple backtest runner. Price data is expected as CSV files in `data/` with the columns `timestamp,open,high,low,close,spread`.
+This repo includes a simple backtest runner. Price data is fetched from the
+MySQL table `mark1`. Connection settings are read from the environment variables
+`DB_HOST`, `DB_USER`, `DB_PASSWORD` and `DB_NAME` or can be supplied via CLI
+flags.
 Run a strategy with:
 
 ```sh
-python backtests/run_backtest.py --symbol BTCUSDT \
-       --strategy vol_breakout --start 2023-01-01 --end 2023-06-01
+python -m backtests.run_backtest --symbol BTCUSDT \
+       --strategy vol_breakout --start 2024-11-20 --end 2024-11-27 \
+       --db-user <user> --db-pass <pass>
 ```
 
