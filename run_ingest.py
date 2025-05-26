@@ -20,6 +20,62 @@ def db_conn():
         autocommit=False
     )
 
+def create_tables(conn):
+    """Create or update required MySQL tables."""
+    with conn.cursor() as cur:
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS mark1 (
+                symbol VARCHAR(20) NOT NULL,
+                startTime BIGINT NOT NULL,
+                open DOUBLE,
+                high DOUBLE,
+                low DOUBLE,
+                close DOUBLE,
+                PRIMARY KEY(symbol, startTime)
+            )"""
+        )
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS index1 (
+                symbol VARCHAR(20) NOT NULL,
+                startTime BIGINT NOT NULL,
+                open DOUBLE,
+                high DOUBLE,
+                low DOUBLE,
+                close DOUBLE,
+                PRIMARY KEY(symbol, startTime)
+            )"""
+        )
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS funding8h (
+                symbol VARCHAR(20) NOT NULL,
+                startTime BIGINT NOT NULL,
+                fundingRate DOUBLE,
+                fundingRateTimestamp BIGINT,
+                PRIMARY KEY(symbol, startTime)
+            )"""
+        )
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS anomalies (
+                symbol VARCHAR(20) NOT NULL,
+                startTime BIGINT NOT NULL,
+                field VARCHAR(64) NOT NULL,
+                value DOUBLE,
+                PRIMARY KEY(symbol, startTime, field)
+            )"""
+        )
+        cur.execute(
+            """CREATE TABLE IF NOT EXISTS symbols (
+                symbol VARCHAR(20) PRIMARY KEY
+            )"""
+        )
+        # ensure new column exists
+        cur.execute("SHOW COLUMNS FROM funding8h LIKE 'fundingRateTimestamp'")
+        if not cur.fetchone():
+            cur.execute(
+                "ALTER TABLE funding8h ADD COLUMN fundingRateTimestamp BIGINT"
+            )
+    conn.commit()
+
 def fetch_with_paging(endpoint, params, list_key="list"):
     end_ts = int(time.time() * 1000)
     while True:
@@ -52,6 +108,7 @@ def insert_mark(conn, symbol, rows, table):
     conn.commit()
 
 def insert_funding(conn, symbol, rows):
+    """Insert funding rate data returned as list of dicts."""
     if not rows:
         return
     with conn.cursor() as cur:
@@ -68,8 +125,15 @@ def insert_funding(conn, symbol, rows):
         values = []
         anomalies = []
         for r in rows:
-            ts = int(r[0])
-            rate = float(r[1])
+            try:
+                ts = int(r["fundingRateTimestamp"])
+                rate = float(r["fundingRate"])
+            except KeyError as exc:
+                logging.warning("Missing key in funding row %s: %s", r, exc)
+                continue
+            except (TypeError, ValueError) as exc:
+                logging.warning("Bad funding value in row %s: %s", r, exc)
+                continue
             values.append((symbol, ts, rate))
             if abs(rate) > 0.05:
                 anomalies.append((symbol, ts, rate))
@@ -139,6 +203,15 @@ def main():
     parser.add_argument("--symbols", nargs="*", help="Symbols to ingest")
     args = parser.parse_args()
     conn = db_conn()
+    # ensure tables exist and upgrade schema if necessary
+    with conn.cursor() as cur:
+        cur.execute("SHOW TABLES LIKE 'funding8h'")
+        if not cur.fetchone():
+            create_tables(conn)
+        else:
+            cur.execute("SHOW COLUMNS FROM funding8h LIKE 'fundingRateTimestamp'")
+            if not cur.fetchone():
+                create_tables(conn)
     if args.symbols:
         symbols = args.symbols
     else:
