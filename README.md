@@ -27,6 +27,15 @@ Run the backfill for specific symbols:
 python run_ingest.py --symbols BTCUSDT ETHUSDT
 ```
 
+By default the script only fetches data that is missing from the database. To
+force a full backfill, pass `--full`.
+
+Incremental example fetching the latest data for a single symbol:
+
+```sh
+python run_ingest.py --symbols ETHUSDT
+```
+
 If no symbols are provided the script will read them from the `symbols` table in the database.
 
 ## Backtesting
