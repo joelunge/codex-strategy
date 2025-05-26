@@ -26,3 +26,11 @@ def test_generate_signals_price_only():
     strat = VolBreakout(lookback=15)
     signals = strat.generate_signals(df)
     assert isinstance(signals, pd.Series)
+
+
+def test_generate_signals_close_only():
+    index = pd.date_range('2024-02-01', periods=20, freq='1min')
+    df = pd.DataFrame({'close': range(20)}, index=index)
+    strat = VolBreakout(lookback=15)
+    signals = strat.generate_signals(df)
+    assert isinstance(signals, pd.Series)
