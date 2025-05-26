@@ -147,6 +147,9 @@ def kelly_fraction(trades: pd.DataFrame) -> float:
     return max(w - (1 - w) / pr, 0.0)
 
 
+MIN_WEIGHT = 0.05
+
+
 class PortfolioSimulator:
     """Combine multiple strategies into a portfolio."""
 
@@ -162,6 +165,8 @@ class PortfolioSimulator:
             trades, equity = strat.simulate(df)
             kelly = kelly_fraction(trades)
             weight = kelly * self.risk_scale
+            if weight == 0:
+                weight = MIN_WEIGHT
             equities.append((equity, weight))
             trades['strategy'] = name
             trades['symbol'] = symbol
@@ -180,7 +185,7 @@ class PortfolioSimulator:
         all_index = sorted(set().union(*(eq.index for eq, _ in equities)))
         portfolio = pd.Series(1.0, index=pd.Index(all_index))
         for eq, w in equities:
-            aligned = eq.reindex(all_index, method='ffill').fillna(method='ffill').fillna(1.0)
+            aligned = eq.reindex(all_index).ffill().fillna(1.0)
             portfolio += (aligned - 1.0) * w
 
         trades_df = pd.concat(trades_all, ignore_index=True) if trades_all else pd.DataFrame()

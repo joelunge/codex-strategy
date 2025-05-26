@@ -4,7 +4,7 @@ import pandas as pd
 def minutes_to_settlement(ts_ms: int) -> int:
     """Return minutes until the next 8h funding settlement."""
     ts = pd.Timestamp(ts_ms, unit="ms", tz="UTC")
-    next_settlement = ts.floor("8H") + pd.Timedelta(hours=8)
+    next_settlement = ts.floor("8h") + pd.Timedelta(hours=8)
     return int((next_settlement - ts).total_seconds() // 60)
 
 

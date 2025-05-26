@@ -1,8 +1,15 @@
 import argparse
 from importlib import import_module
+import warnings
 import pandas as pd
 from backtests.core import cagr, max_drawdown, sharpe_ratio, win_rate, payoff_ratio
 from utils.db import db_conn
+
+warnings.filterwarnings(
+    "ignore",
+    message=".*read_sql.*",
+    category=FutureWarning,
+)
 
 
 def load_data(conn, symbol: str, start: str, end: str, with_index: bool = False) -> pd.DataFrame:
