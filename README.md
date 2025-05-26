@@ -53,3 +53,14 @@ python -m backtests.run_backtest \
        --end   2024-11-27
 ```
 
+
+## Grid search usage
+
+Run a parameter sweep for the `vol_breakout` strategy:
+
+```sh
+python run_grid.py --start 2024-02-01 --end 2024-05-01 --symbols BTCUSDT ETHUSDT
+```
+
+Results are saved to `grid_results.csv`.
+
