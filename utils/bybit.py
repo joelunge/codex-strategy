@@ -72,6 +72,9 @@ def place_order_post_only(
 
 
 def fetch_funding(symbol: str, net: str = "testnet") -> float:
+    if net == "testnet":
+        return 0.0
+
     url = base_url(net) + "/v5/market/funding/prev-funding-rate"
     params = {"symbol": symbol}
     resp = requests.get(url, params=params, timeout=10)

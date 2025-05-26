@@ -54,6 +54,8 @@ class LiveBot:
 
     async def run(self):
         print(f"Connected to {self.net}")
+        if self.net == "testnet":
+            print("[INFO] Funding payouts are set to 0 on testnet – this is expected.")
         while self.running:
             await self.loop_once()
             await asyncio.sleep(60)
