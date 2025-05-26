@@ -1,10 +1,12 @@
 import pandas as pd
 from backtests.core import Strategy
 
+DEFAULT_RISK_MULT = 1.0
+
 class VolBreakout(Strategy):
     """Simple volatility breakout strategy."""
 
-    def __init__(self, lookback=15, range_threshold=0.10, breakout_threshold=0.05, risk_mult=1.0):
+    def __init__(self, lookback=15, range_threshold=0.10, breakout_threshold=0.05, risk_mult=DEFAULT_RISK_MULT):
         """Initialize breakout parameters.
 
         Parameters
